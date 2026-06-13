@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Default direct MCP tools to deferred loading behind `tool_search`; set `directToolLoading: "eager"` globally or per server to opt into eager schemas.
+
 ## [2.10.0] - 2026-06-13
 
 ### Added

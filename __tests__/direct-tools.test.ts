@@ -264,6 +264,79 @@ describe("excludeTools filtering", () => {
     expect(specs.map((spec) => spec.prefixedName)).toEqual(["figma_get_nodes"]);
   });
 
+  it("defaults direct tools to deferred loading", () => {
+    const config: McpConfig = {
+      settings: { toolPrefix: "server" },
+      mcpServers: {
+        figma: {
+          command: "npx",
+          args: ["-y", "figma"],
+          directTools: true,
+        },
+      },
+    };
+
+    const cache: MetadataCache = {
+      version: 1,
+      servers: {
+        figma: {
+          configHash: computeServerHash(config.mcpServers.figma),
+          cachedAt: Date.now(),
+          tools: [{ name: "get_nodes", description: "Nodes" }],
+          resources: [],
+        },
+      },
+    };
+
+    const specs = resolveDirectTools(config, cache, "server");
+
+    expect(specs.map((spec) => spec.loading)).toEqual(["deferred"]);
+  });
+
+  it("honors global and per-server eager direct-tool loading", () => {
+    const config: McpConfig = {
+      settings: { toolPrefix: "server", directToolLoading: "eager" },
+      mcpServers: {
+        hot: {
+          command: "npx",
+          args: ["-y", "hot"],
+          directTools: true,
+        },
+        cold: {
+          command: "npx",
+          args: ["-y", "cold"],
+          directTools: true,
+          directToolLoading: "deferred",
+        },
+      },
+    };
+
+    const cache: MetadataCache = {
+      version: 1,
+      servers: {
+        hot: {
+          configHash: computeServerHash(config.mcpServers.hot),
+          cachedAt: Date.now(),
+          tools: [{ name: "do_hot", description: "Hot" }],
+          resources: [],
+        },
+        cold: {
+          configHash: computeServerHash(config.mcpServers.cold),
+          cachedAt: Date.now(),
+          tools: [{ name: "do_cold", description: "Cold" }],
+          resources: [],
+        },
+      },
+    };
+
+    const specs = resolveDirectTools(config, cache, "server");
+
+    expect(specs.map((spec) => [spec.prefixedName, spec.loading])).toEqual([
+      ["hot_do_hot", "eager"],
+      ["cold_do_cold", "deferred"],
+    ]);
+  });
+
   it("matches prefixed exclusions even when toolPrefix is none", () => {
     const config: McpConfig = {
       settings: { toolPrefix: "none" },

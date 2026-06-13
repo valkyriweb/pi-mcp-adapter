@@ -1,7 +1,7 @@
 import type { AgentToolResult, AgentToolUpdateCallback, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { UrlElicitationRequiredError } from "@modelcontextprotocol/sdk/types.js";
 import type { McpExtensionState } from "./state.ts";
-import type { DirectToolSpec, McpConfig, McpContent } from "./types.ts";
+import type { DirectToolLoading, DirectToolSpec, McpConfig, McpContent } from "./types.ts";
 import type { MetadataCache } from "./metadata-cache.ts";
 import { lazyConnect, getFailureAgeSeconds } from "./init.ts";
 import { isServerCacheValid } from "./metadata-cache.ts";
@@ -14,6 +14,10 @@ import { authenticate, supportsOAuth } from "./mcp-auth-flow.ts";
 import { formatAuthRequiredMessage } from "./utils.ts";
 
 const BUILTIN_NAMES = new Set(["read", "bash", "edit", "write", "grep", "find", "ls", "mcp"]);
+
+function normalizeDirectToolLoading(value: unknown): DirectToolLoading | undefined {
+  return value === "eager" || value === "deferred" ? value : undefined;
+}
 
 type DirectAutoAuthResult =
   | { status: "skipped" }
@@ -104,6 +108,7 @@ export function resolveDirectTools(
   }
 
   const globalDirect = config.settings?.directTools;
+  const globalLoading = normalizeDirectToolLoading(config.settings?.directToolLoading) ?? "deferred";
 
   for (const [serverName, definition] of Object.entries(config.mcpServers)) {
     const serverCache = cache.servers[serverName];
@@ -127,6 +132,8 @@ export function resolveDirectTools(
 
     if (!toolFilter) continue;
 
+    const directToolLoading = normalizeDirectToolLoading(definition.directToolLoading) ?? globalLoading;
+
     for (const tool of serverCache.tools ?? []) {
       if (toolFilter !== true && !toolFilter.includes(tool.name)) continue;
       if (isToolExcluded(tool.name, serverName, prefix, definition.excludeTools)) continue;
@@ -145,6 +152,7 @@ export function resolveDirectTools(
         originalName: tool.name,
         prefixedName,
         description: tool.description ?? "",
+        loading: directToolLoading,
         inputSchema: tool.inputSchema,
         uiResourceUri: tool.uiResourceUri,
         uiStreamMode: tool.uiStreamMode,
@@ -171,6 +179,7 @@ export function resolveDirectTools(
           originalName: baseName,
           prefixedName,
           description: resource.description ?? `Read resource: ${resource.uri}`,
+          loading: directToolLoading,
           resourceUri: resource.uri,
         });
       }

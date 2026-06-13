@@ -280,6 +280,8 @@ export interface OAuthConfig {
   clientUri?: string;
 }
 
+export type DirectToolLoading = "deferred" | "eager";
+
 // Server configuration
 export interface ServerEntry {
   command?: string;
@@ -311,6 +313,13 @@ export interface ServerEntry {
   exposeResources?: boolean;
   // Direct tool registration
   directTools?: boolean | string[];
+  /**
+   * How direct tools from this server are exposed to the model.
+   * Defaults to "deferred" so schemas do not eagerly bloat or churn tools[].
+   * Use "eager" only for tiny, frequently-used tools that must be callable
+   * without tool_search discovery.
+   */
+  directToolLoading?: DirectToolLoading;
   // Exclude specific MCP tools/resources by original or prefixed name
   excludeTools?: string[];
   // Debug
@@ -322,6 +331,8 @@ export interface McpSettings {
   toolPrefix?: "server" | "none" | "short";
   idleTimeout?: number; // minutes, default 10, 0 to disable
   directTools?: boolean;
+  /** Global default for direct MCP tool loading. Defaults to "deferred". */
+  directToolLoading?: DirectToolLoading;
   disableProxyTool?: boolean;
   autoAuth?: boolean;
   sampling?: boolean;
@@ -360,6 +371,7 @@ export interface DirectToolSpec {
   originalName: string;
   prefixedName: string;
   description: string;
+  loading: DirectToolLoading;
   inputSchema?: unknown;
   resourceUri?: string;
   uiResourceUri?: string;

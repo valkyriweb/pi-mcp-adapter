@@ -71,6 +71,7 @@ export default function mcpAdapter(pi: ExtensionAPI) {
       name: spec.prefixedName,
       label: `MCP: ${spec.originalName}`,
       description: spec.description || "(no description)",
+      ...(spec.loading === "eager" ? { alwaysLoad: true } : { deferLoading: true }),
       promptSnippet: truncateAtWord(spec.description, 100) || `MCP tool from ${spec.serverName}`,
       parameters: Type.Unsafe((spec.inputSchema || { type: "object", properties: {} }) as never),
       execute: createDirectToolExecutor(() => state, () => initPromise, spec),

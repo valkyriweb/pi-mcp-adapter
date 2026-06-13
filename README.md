@@ -137,6 +137,7 @@ Pi-specific files are the write targets for imported or shared global servers wh
 | `idleTimeout` | Minutes before idle disconnect (overrides global) |
 | `exposeResources` | Expose MCP resources as tools (default: true) |
 | `directTools` | `true`, `string[]`, or `false` — register tools individually instead of through proxy |
+| `directToolLoading` | `"deferred"` (default) or `"eager"` — direct tools are deferred behind tool_search unless explicitly eager |
 | `excludeTools` | `string[]` of tool names to hide (matches original names like `get_screenshot` and prefixed names like `figma_get_screenshot`) |
 | `debug` | Show server stderr (default: false) |
 
@@ -185,6 +186,7 @@ You can also pass only the `code` query parameter with `args: '{"code":"..."}'`.
 | `toolPrefix` | `"server"` (default), `"short"` (strips `-mcp` suffix), or `"none"` |
 | `idleTimeout` | Global idle timeout in minutes (default: 10, 0 to disable) |
 | `directTools` | Global default for all servers (default: false). Per-server overrides this. |
+| `directToolLoading` | Global loading policy for direct tools: `"deferred"` default, or `"eager"`. Per-server overrides this. |
 | `disableProxyTool` | Hide the `mcp` proxy tool once configured direct tools are fully available from cache. |
 | `autoAuth` | Auto-run OAuth on `connect`/tool calls when a server needs auth, then retry once (default: false). |
 | `sampling` | Allow MCP servers to sample through Pi models, honoring `modelPreferences.hints` before current/default fallback (default: true when UI approval is available). |
@@ -265,7 +267,9 @@ To exclude specific tools while still using `directTools: true`, add `excludeToo
 
 `excludeTools` filters direct tools, proxy search/list/describe, and the `/mcp` panel view.
 
-Each direct tool costs ~150-300 tokens in the system prompt (name + description + schema). Good for targeted sets of 5-20 tools. For servers with 75+ tools, stick with the proxy or pick specific tools with a `string[]`.
+Direct tools default to deferred loading: Pi registers them as provider-native deferred stubs and the model discovers them through `tool_search`, so adding a direct tool does not eagerly add its full schema to `tools[]`. Set `directToolLoading: "eager"` only for tiny, hot tool sets that must be callable without discovery. You can set this globally under `settings` or per server.
+
+Eager direct tools cost ~150-300 tokens each in the system prompt (name + description + schema). Good for targeted sets of 5-20 tools. For servers with 75+ tools, keep the default deferred loading, stick with the proxy, or pick specific tools with a `string[]`.
 
 Direct tools register from the metadata cache in the Pi agent dir (`~/.pi/agent/mcp-cache.json` by default, or `$PI_CODING_AGENT_DIR/mcp-cache.json` when set), so no server connections are needed at startup. On the first session after adding `directTools` to a new server, the cache won't exist yet — tools fall back to proxy-only and the cache populates in the background. To force it: `/mcp reconnect <server>`.
 
